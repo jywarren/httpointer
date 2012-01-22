@@ -1,0 +1,64 @@
+<div id="notification" style="background:#ffd;color:#cc5;"></div>
+<div id="cursor" style="width:8px;height:8px;position:absolute;background:blue;"></div>
+<script>
+
+$HP = {
+	pointer_x: 0,
+	pointer_y: 0,
+	pointer_down_x: 0,
+	pointer_down_y: 0,
+	mousedown: false,
+	pointerstart: function(e) {
+		$HP.mousedown = true
+		$('cursor').style.background = "red"
+		Event.stop(e)
+		e.preventDefault()
+	},
+	pointerend: function(e) {
+		$HP.pointer_x = Event.pointerX(e)
+		$HP.pointer_y = Event.pointerY(e)
+		if (e.touches && e.touches.length) {
+			$HP.pointer_x = e.touches[0].clientX
+			$HP.pointer_y = e.touches[0].clientY
+		}
+		$HP.mousedown = false
+		$('cursor').style.background = "blue"
+		d_x = $HP.pointer_down_x-$HP.pointer_x
+		d_y = $HP.pointer_down_y-$HP.pointer_y
+		new Ajax.Request("/pointer/mousermove/",{
+			method: "get",
+			parameters: {
+				x: d_x,
+				y: d_y,
+			},
+			onSuccess: function(response) {
+				$HP.notify(response.responseText,1)
+			}
+		})
+		Event.stop(e)
+		e.preventDefault()
+	},
+	pointermove: function(e) {
+		$HP.pointer_x = Event.pointerX(e)
+		$HP.pointer_y = Event.pointerY(e)
+		$('cursor').style.top = ($HP.pointer_y-4)+"px"
+		$('cursor').style.left = ($HP.pointer_x-4)+"px"
+		Event.stop(e)
+		e.preventDefault()
+	},
+        notify: function(message,timeout) {
+                $('notification').innerHTML = message
+                if (timeout) setTimeout(function(){$('notification').innerHTML = ""},timeout*3000)
+        }
+ 
+}
+
+document.observe("mousedown",$HP.pointerstart)
+document.observe("touchstart",$HP.pointerstart)
+document.observe("mouseup",$HP.pointerend)
+document.observe("touchend",$HP.pointerend)
+document.observe("mousemove",$HP.pointermove)
+document.observe("touchmove",$HP.pointermove)
+
+
+</script>
