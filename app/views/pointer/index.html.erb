@@ -7,44 +7,89 @@ $HP = {
 	pointer_y: 0,
 	pointer_down_x: 0,
 	pointer_down_y: 0,
+	pointer_up_time: 0,
+	pointer_down_time: 0,
 	mousedown: false,
 	pointerstart: function(e) {
+		if (e.touches && (e.touches[0] || e.changedTouches[0])) {
+			var touch = e.touches[0] || e.changedTouches[0];
+			$HP.pointer_down_x = touch.pageX
+			$HP.pointer_down_y = touch.pageY
+		} else {
+			$HP.pointer_down_x = Event.pointerX(e)
+			$HP.pointer_down_y = Event.pointerY(e)
+			$HP.leftbtndown()
+		}
 		$HP.mousedown = true
+		$HP.pointer_down_time = (new Date()).getTime()
 		$('cursor').style.background = "red"
 		Event.stop(e)
 		e.preventDefault()
 	},
 	pointerend: function(e) {
-		$HP.pointer_x = Event.pointerX(e)
-		$HP.pointer_y = Event.pointerY(e)
-		if (e.touches && e.touches.length) {
-			$HP.pointer_x = e.touches[0].clientX
-			$HP.pointer_y = e.touches[0].clientY
-		}
 		$HP.mousedown = false
+		$HP.pointer_up_time = (new Date()).getTime()
 		$('cursor').style.background = "blue"
-		d_x = $HP.pointer_down_x-$HP.pointer_x
-		d_y = $HP.pointer_down_y-$HP.pointer_y
-		new Ajax.Request("/pointer/mousermove/",{
-			method: "get",
-			parameters: {
-				x: d_x,
-				y: d_y,
-			},
-			onSuccess: function(response) {
-				$HP.notify(response.responseText,1)
+		if (e.touches && (e.touches[0] || e.changedTouches[0])) {
+			if ($HP.pointer_up_time-$HP.pointer_down_time < 100) {
+				$HP.click()
 			}
-		})
+		} else {
+			$HP.leftbtnup()
+		}
 		Event.stop(e)
 		e.preventDefault()
 	},
 	pointermove: function(e) {
-		$HP.pointer_x = Event.pointerX(e)
-		$HP.pointer_y = Event.pointerY(e)
+		if (e.touches && (e.touches[0] || e.changedTouches[0])) {
+			var touch = e.touches[0] || e.changedTouches[0];
+			$HP.pointer_x = touch.pageX
+			$HP.pointer_y = touch.pageY
+		} else {
+			$HP.pointer_x = Event.pointerX(e)
+			$HP.pointer_y = Event.pointerY(e)
+		}
 		$('cursor').style.top = ($HP.pointer_y-4)+"px"
 		$('cursor').style.left = ($HP.pointer_x-4)+"px"
+		$HP.move()
+		// $HP.rmove() for relative, trackpad-style
 		Event.stop(e)
 		e.preventDefault()
+	},
+	click: function() {
+		new Ajax.Request("/pointer/click/",{
+			method: "get",
+		})
+	},
+	leftbtnup: function() {
+		new Ajax.Request("/pointer/leftbtnup/",{
+			method: "get",
+		})
+	},
+	leftbtndown: function() {
+		new Ajax.Request("/pointer/leftbtndown/",{
+			method: "get",
+		})
+	},
+	move: function() {
+		new Ajax.Request("/pointer/mousemove/",{
+			method: "get",
+			parameters: {
+				x: $HP.pointer_x,
+				y: $HP.pointer_y
+			},
+		})
+	},
+	rmove: function() {
+		d_x = $HP.pointer_x-$HP.pointer_down_x
+		d_y = $HP.pointer_y-$HP.pointer_down_y
+		new Ajax.Request("/pointer/mousermove/",{
+			method: "get",
+			parameters: {
+				x: d_x,
+				y: d_y
+			},
+		})
 	},
         notify: function(message,timeout) {
                 $('notification').innerHTML = message
